@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="repuve_mx_api",
+    name="mexican_vehicles_api",
     packages=find_packages(),
 )

@@ -1,6 +1,6 @@
+from aws_lambda_powertools import Logger
 from flask import Flask
 
-from aws_lambda_powertools import Logger
 from mexican_vehicles_api.scraper import get_vehicle
 
 app = Flask(__name__)

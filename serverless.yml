@@ -1,0 +1,58 @@
+service: mexican-vehicles-api
+
+provider:
+  name: aws
+  runtime: python3.7
+  memorySize: 512
+  timeout: 900
+
+package:
+    patterns:
+    - "!**/*.py[c|o]"
+    - "!**/__pycache__*"
+    - "!*.egg-info*"
+    - "!.env"
+    - "!.flake8"
+    - "!.github/**"
+    - "!.idea/**"
+    - "!.pytest*/**"
+    - "!.venv/**"
+    - "!node_modules/**"
+    - "!test*/**"
+    - "!venv*/**"
+
+custom:
+  pythonRequirements:
+    fileName: requirements.txt
+    invalidateCaches: true
+    layer: true
+    slim: true
+    slimPatternsAppendDefaults: true
+    slimPatterns:
+      - "**/*.py[c|o]"
+      - "**/__pycache__*"
+      - "**/adrs"
+      - "**/tests"
+      - "*.egg-info*"
+      - ".venv"
+      - "node_modules"
+      - "venv*"
+    strip: false
+    useStaticCache: false
+  wsgi:
+    app: mexican_vehicles_api.api.app
+    packRequirements: false
+
+functions:
+  mexican-vehicles-api:
+    timeout: 300
+    handler: wsgi_handler.handler
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - http: ANY /
+      - http: ANY /{proxy+}
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi

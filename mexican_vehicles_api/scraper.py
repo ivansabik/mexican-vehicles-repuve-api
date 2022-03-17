@@ -122,8 +122,10 @@ def get_vehicle(license_plates):
         vehicle_data[column_name] = row_value
 
     # Type casting
-    vehicle_data["doors"] = int(vehicle_data["doors"])
-    vehicle_data["year"] = int(vehicle_data["year"])
+    if vehicle_data["doors"]:
+        vehicle_data["doors"] = int(vehicle_data["doors"])
+    if vehicle_data["doors"]:
+        vehicle_data["year"] = int(vehicle_data["year"])
 
     return vehicle_data
 

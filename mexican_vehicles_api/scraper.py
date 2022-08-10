@@ -1,15 +1,13 @@
 import base64
-import os
+import re
 
 import tenacity
 from aws_lambda_powertools import Logger
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 
 from mexican_vehicles_api.captcha_solver.testing import solver
 from mexican_vehicles_api.exceptions import TransientError, VehicleNotFound
+from mexican_vehicles_api.utils import get_chrome_webdriver
 
 logger = Logger(service="scraper")
 
@@ -33,16 +31,8 @@ MAPPING = {
     stop=tenacity.stop_after_attempt(10),
 )
 def get_vehicle(license_plates):
-    options = Options()
-    options.binary_location = os.getenv(
-        "CHROME_PATH", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    )
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--single-process")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    driver = get_chrome_webdriver()
+    logger.info("Attempting to retrieve data")
     driver.get("http://www2.repuve.gob.mx:8080/ciudadania/consulta/")
 
     element = driver.find_element_by_xpath('//*[@id="modalReemplacamiento"]/div/div/div[3]/button')
@@ -121,9 +111,13 @@ def get_vehicle(license_plates):
         column_name = MAPPING[row_number]["column_name"]
         vehicle_data[column_name] = row_value
 
+    has_stolen_report = len(soup.body.findAll(text="Con Reporte de Robo")) > 0
+    vehicle_data["has_stolen_report"] = has_stolen_report
+
     # Type casting
     if vehicle_data["doors"]:
-        vehicle_data["doors"] = int(vehicle_data["doors"])
+        doors = re.sub("[^0-9]", "", vehicle_data["doors"])
+        vehicle_data["doors"] = int(doors)
     if vehicle_data["doors"]:
         vehicle_data["year"] = int(vehicle_data["year"])
 

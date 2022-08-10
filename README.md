@@ -2,10 +2,7 @@
 
 ## Setup
 
-```
-pip install -e . && pip install -r requirements.txt
-FLASK_ENV=development FLASK_APP=mexican_vehicles_api.api flask run
-```
+WIP
 
 ## Response
 
@@ -14,6 +11,7 @@ FLASK_ENV=development FLASK_APP=mexican_vehicles_api.api flask run
   "assembly_plant_location": "FLAT ROCK,MI", 
   "classification": "AUTOMOVIL", 
   "doors": 2, 
+  "has_stolen_report": false,
   "license_plates": "EXM454A", 
   "make": "FORD", 
   "model": "MUSTANG GT", 
@@ -36,8 +34,8 @@ CAMPECHE | CP50087
 COAHUILA DE ZARAGOZA | EXM454A
 COLIMA | FTE7768
 CHIAPAS | DNM988D  
-CHIHUAHUA |  
-CIUDAD DE MEXICO |  
+CHIHUAHUA | 620SCV9
+CIUDAD DE MEXICO | 912TER
 DURANGO |  
 GUANAJUATO |  
 GUERRERO |  

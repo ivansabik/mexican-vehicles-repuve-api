@@ -1,13 +1,19 @@
 from aws_lambda_powertools import Logger
-from flask import Flask
+from aws_lambda_powertools.utilities.data_classes import LambdaFunctionUrlEvent, event_source
 
 from mexican_vehicles_api.scraper import get_vehicle
 
-app = Flask(__name__)
-logger = Logger(service="scraper")
+logger = Logger(service="api")
 
 
-@app.get("/vehicles/<license_plates>")
-def find_vehicle_by_license_plates(license_plates):
+@event_source(data_class=LambdaFunctionUrlEvent)
+def handler(event: LambdaFunctionUrlEvent, context):
+    logger.info("Processing event", extra={"event": event.__dict__})
+    if event.query_string_parameters and event.query_string_parameters.get("plates"):
+        license_plates = event.query_string_parameters["plates"]
+        return _find_vehicle_by_license_plates(license_plates)
+
+
+def _find_vehicle_by_license_plates(license_plates):
     response = get_vehicle(license_plates)
-    return response, 200
+    return response

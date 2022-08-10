@@ -1,9 +1,12 @@
 import json
 import os
 
+from aws_lambda_powertools import Logger
+
 import numpy
 
 CURRENT_PATH = os.getcwd()
+logger = Logger(service="captcha_solver_naive_bayes_classifier")
 
 
 class NaiveBayesClassifier:
@@ -11,7 +14,7 @@ class NaiveBayesClassifier:
         self.classes = "abcdefghijklmnopqrstuvwxyz0123456789"
 
     def start_training(self):
-        print("Started training...")
+        logger.info("Started training...")
         training_X = numpy.array(
             [
                 csv_line.split(",")
@@ -47,13 +50,12 @@ class NaiveBayesClassifier:
             )
             # -------------
             progress_count += 1
-            print("- Training progress:", str(progress_count * 100 / 36), "%")
-        print("====================")
-        print(" Training Complete!")
+            logger.info("Training progress", extra={"progress": str(progress_count * 100 / 36)})
+        logger.info(" Training Complete!")
         open("/tmp/trained_model_brain.json", "w").write(
             json.dumps(probabilities_dict, indent=4, sort_keys=True)
         )
-        print("- Saved Trained /tmp/trained_model_brain.json")
+        logger.info("Saved trained", extra={"output": "/tmp/trained_model_brain.json"})
 
     def getClassification(self, jchar_csv):
         probabilities_dict = json.loads(
@@ -93,7 +95,7 @@ def main():
     classifier = NaiveBayesClassifier()
     testList = open("sample.csv", "r").read().strip().split("\n")
     for t in testList:
-        print("solution:", classifier.getClassification(t))
+        logger.info("solution:", classifier.getClassification(t))
 
 
 if __name__ == "__main__":

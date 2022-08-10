@@ -31,7 +31,6 @@ def main(captcha_image_path=None):
     jcaptcha_image = JCaptchaImage(captcha_image_path)
     solver = CaptchaSolver(jcaptcha_image)
     solution = solver.getSolution()
-    print("\t- Solution:", solution)
     return solution
 
 

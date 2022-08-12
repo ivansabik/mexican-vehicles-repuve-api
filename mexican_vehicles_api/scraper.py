@@ -4,6 +4,7 @@ import re
 import tenacity
 from aws_lambda_powertools import Logger
 from bs4 import BeautifulSoup
+from selenium.common.exceptions import WebDriverException
 
 from mexican_vehicles_api.captcha_solver.testing import solver
 from mexican_vehicles_api.exceptions import TransientError, VehicleNotFound
@@ -28,19 +29,19 @@ MAPPING = {
 
 @tenacity.retry(
     retry=tenacity.retry_if_exception_type(TransientError),
-    stop=tenacity.stop_after_attempt(10),
+    stop=tenacity.stop_after_attempt(15),
 )
 def get_vehicle(license_plates):
+    logger.info("Attempting to retrieve data", extra={"plates": license_plates})
     driver = get_chrome_webdriver()
-    logger.info("Attempting to retrieve data")
     driver.get("http://www2.repuve.gob.mx:8080/ciudadania/consulta/")
 
-    element = driver.find_element_by_xpath('//*[@id="modalReemplacamiento"]/div/div/div[3]/button')
+    element = driver.find_element("xpath", '//*[@id="modalReemplacamiento"]/div/div/div[3]/button')
     element.click()
 
     # Save the captcha to local disk and solve
-    element = driver.find_element_by_xpath(
-        "/html/body/main/form/div[1]/div/div[3]/div[5]/div[1]/img"
+    element = driver.find_element(
+        "xpath", "/html/body/main/form/div[1]/div/div[3]/div[5]/div[1]/img"
     )
     img_captcha_base64 = driver.execute_async_script(
         """
@@ -62,17 +63,15 @@ def get_vehicle(license_plates):
     logger.info(f"Captcha solved", extra={"answer": captcha_answer})
 
     # Send form with license_plates and captcha
-    driver.find_element_by_id("placa").send_keys(license_plates)
-    driver.find_element_by_id("captcha").send_keys(captcha_answer)
-    form = driver.find_element_by_xpath("/html/body/main/form")
+    driver.find_element("id", "placa").send_keys(license_plates)
+    driver.find_element("id", "captcha").send_keys(captcha_answer)
+    form = driver.find_element("xpath", "/html/body/main/form")
     form.submit()
 
     # Validate results after submitting the form
     if "El texto de la imagen y el que captura" in driver.page_source:
-        driver.close()
         raise TransientError("Invalid captcha answer")
     if "PLACA no encontrada" in driver.page_source:
-        driver.close()
         raise VehicleNotFound(f"No vehicle was found wih license license plates {license_plates}")
 
     # Write HTML to local disk
@@ -81,9 +80,32 @@ def get_vehicle(license_plates):
         f.write(driver.page_source)
         logger.info(f"Wrote output HTML", extra={"path": html_output_path})
     output_html = str(driver.page_source)
-    driver.close()
 
     # Parse the table with vehicle information
+    # Marca:	TOYOTA
+    # Modelo:	RAV4
+    # Año Modelo:	2019
+    # Clase:	CAMIONETA
+    # Tipo:	SUV
+    # Número de Identificación Vehicular (NIV):	JTMR13FV2KD030511
+    # Número de Constancia de Inscripción (NCI):	2PO99KBM
+    # Placa:	FZX865B
+    # Número de puertas:	5 PUERTAS
+    # País de origen:	JAPON
+    # Versión:	AWD XLE
+    # Desplazamiento (cc/L):	2.5L
+    # Número de cilindros:	L4
+    # Número de ejes:
+    # Planta de ensamble:	JAPON
+    # Datos complementarios:	4 PTAS SUV JAPON 2.5L, L4
+    # Institución que lo inscribió:	TOYOTA MOTOR SALES DE MEXICO, S. DE R.L. DE C.V.
+    # Fecha de inscripción:	15/07/2019
+    # Hora de inscripción:	11:35:54
+    # Entidad que emplacó	DURANGO
+    # Fecha de emplacado:	20/07/2019
+    # Fecha de última actualización:	22/07/2019
+    # Folio de Constancia de Inscripción:	13453671
+    # Observaciones:	ALTA DE VEHICULO
     soup = BeautifulSoup(output_html, "html.parser")
     table = soup.find("table")
     table_body = table.find("tbody")
@@ -101,6 +123,7 @@ def get_vehicle(license_plates):
         except IndexError:
             logger.error(f"Failed processing values {cols}")
             row_value = ""
+
         # Remove repeated white spaces
         row_value = " ".join(row_value.split())
 

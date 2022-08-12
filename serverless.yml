@@ -3,7 +3,7 @@ service: mexican-vehicles-api
 provider:
   name: aws
   region: us-east-1
-  memorySize: 1024
+  memorySize: 1536
   timeout: 900
   ecr:
     images:
